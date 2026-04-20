@@ -1,42 +1,16 @@
 This is a Cinnamon window list and panel launcher applet based on CobiWindowList with a number of additional features designed to give you more control over how your window-list operates.
 
-Recent new features (Aug 2023 - Dec 2024):
+**New features (version 2.4.7):**
 
-* Focus a buttons window when dragging an object to the window-list so the user can drop on the window
-* Added scroll-wheel options, cycle all window-list windows and cycle group/pool windows
-* Added context menu options to close all/other windows for the buttons application
-* Saves new default thumbnail window sizes (adjusted using the mouse scroll-wheel) across cinnamon restarts
-* Now uses application specific thumbnail windows sizes across all workspaces
-* Changing the "Default thumbnail window size" setting will now reset all scroll-wheel set thumbnail sizes
-* Add "Always on top" item to the button context menu as well as "Always on top" mouse actions (Cinnamon 5.4+)
-* Allow rearranging Thumbnail menu items using drag-and-drop, also allow dropping on the desktop
-* Add options for hiding button labels when the windows workspace/monitor is not the current workspace/monitor
-* Added an option to sort the Thumbnail menu for grouped buttons based on the Workspace & Monitor index
-* Added 4 scroll-wheel actions options which applies when the scroll-wheel is used on a window-list button
-* Added "Restore/Minimize 1st window in group" option to the "Left button action for grouped buttons" option list
-* Support "drag-&-drop to desktop" which will move a window to the workspace & monitor it's dropped on
-* "Move window here" context menu/mouse action options to move a window to the current monitor/workspace
-* Thumbnail menu items will now show the windows workspace/monitor number(s) when appropriate
-* Added an option to configure the "number label" contents (added workspace and monitor number options)
-* Added an optional vertical ellipsis character to indicate a window-list button is grouped
-* Added 4 new mouse action options that will activate windows 1-4 of a grouped button
-* Added a configuration option to set the delay length before showing full size preview windows
-* Mouse action options for window tiling, untiling and moving window to current workspace
-* Hover peek: Option to show a full size preview when hovering buttons/thumbnails
-* No Click activate: Option to automatically switch focus to the button/Thumbnail last hovered
-* Adjustable spacing between window-list buttons
-* Ability to disable the new window animation
-* Ability to change the icon saturation from grayscale (0%) to vivid (200%)
-* Ability to show windows from other workspaces
-* Restores custom group/ungroup application setting after reboot/cinnamon-restart
-* Hotkey option to assign a set of 1-9 hotkeys to all window-list buttons
-* Hotkey hints using the (`) grave key with any registered hotkey modifiers
-* Added a Left-Click option to start new application windows in Launcher mode
-* Ability to show a common set of pinned buttons on all workspaces
-* Smart numeric hotkeys to assign a set of 1-9 hotkeys to a specific application
-* A bunch of fixes
+* Added an option to remove the hotkey combos from the tooltip text for window list buttons
 
-The design goals are to:
+* See the CHANGELOG below for information on features added in previous releases
+
+**Upgrading notes:**
+
+* After upgrading to 2.4.2 you might need to change some options under the "Labels" tab to restore some elements of your setup. This is due to a small "Label" options redesign in order to allow for some new features and to improve ease of use.
+
+**The design goals are to:**
 
 1. Allow you to declutter your window list when running many windows without having to do without button labels
 2. Keyboard hot-keys to switch to specific windows so you don't have to reach for the mouse so often
@@ -47,7 +21,7 @@ The design goals are to:
 
 This applet requires at least Cinnamon 4.0 but Cinnamon 6.0 is recommended
 
-Before upgrading to Cinnamon 6.4 make sure you are running version 2.4.0 or better of this applet
+This applets code base used for Cinnamon versions prior to 5.4 is now retired and will not receive any feature updates in the future.
 
 ## Installation
 

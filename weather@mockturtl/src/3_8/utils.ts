@@ -117,12 +117,13 @@ export function InjectValues(text: string, weather: WeatherData, config: Config,
 	const dayLengthVal = sunset && sunrise ? sunset.diff(sunrise) : "";
 	const dayLength = dayLengthVal ? dayLengthVal.toFormat("h:mm") : "";
 	const daylightRemainVal = sunrise && sunset ? sunset.diff(timeNow) : null;
-	const isDaylight = sunrise && sunset ? !IsNight({sunrise: sunrise, sunset: sunset}) : false;
+	const isDaylight = sunrise && sunset ? !IsNight({ sunrise: sunrise, sunset: sunset }) : false;
 	const daylightRemain = isDaylight && daylightRemainVal ? daylightRemainVal.toFormat("h:mm") : "";
 	const daylightRemainPct = sunrise && sunset && isDaylight
 		? Math.round((sunset.toMillis() - timeNow.toMillis()) * 100 / (sunset.toMillis() - sunrise.toMillis())).toString()
 		: "0";
 	const dayLengthLightRemain = `${dayLength}${daylightRemain !== "" ? ` (${daylightRemain})` : ""}`;
+	const uvIndex = weather.uvIndex != null ? (Math.round(weather.uvIndex * 10) / 10).toString() : "";
 
 	// Define values and their defaults for padding and formatting
 	const valuesPaddingDefaults: Record<string, TagOptions> = {
@@ -163,6 +164,8 @@ export function InjectValues(text: string, weather: WeatherData, config: Config,
 		t_h: { value: tempHour.toString() },
 		t_h_diff: { value: tempHourDiff.toString() },
 		br: { value: "\n" },
+		uv: { value: uvIndex },
+		uv_text: { value: weather.uvIndex != null ? UVIndexToText(weather.uvIndex) : _("Unknown") },
 	};
 
 	// Process text replacement for each tag
@@ -176,31 +179,49 @@ export function InjectValues(text: string, weather: WeatherData, config: Config,
 		let match: RegExpExecArray | null;
 
 		while ((match = regexp.exec(text)) !== null) {
-		const literalStart = match[1] || '';
-		const literalEnd = match[6] || '';
+			const literalStart = match[1] || '';
+			const literalEnd = match[6] || '';
 
-		const paddingSpecifier = match[3] || undefined;
-		const paddingSize = match[4] || undefined;
-		const padCharMatch = match[5] || undefined;
+			const paddingSpecifier = match[3] || undefined;
+			const paddingSize = match[4] || undefined;
+			const padCharMatch = match[5] || undefined;
 
-		const padLiteral = literalStart === "{{{" && literalEnd === "}}}";
-		const isLiteral = literalStart === "{{" && literalEnd === "}}";
-		const noPad = inCommand && !padLiteral;
+			const padLiteral = literalStart === "{{{" && literalEnd === "}}}";
+			const isLiteral = literalStart === "{{" && literalEnd === "}}";
+			const noPad = inCommand && !padLiteral;
 
-		const applyPadRight: boolean = (paddingSpecifier === '.' || (paddingSpecifier === undefined && padRight));
-		const applyPad: number = paddingSize ? Number(paddingSize) : padLength;
-		const charPad: string = padCharMatch || padChar;
+			const applyPadRight: boolean = (paddingSpecifier === '.' || (paddingSpecifier === undefined && padRight));
+			const applyPad: number = paddingSize ? Number(paddingSize) : padLength;
+			const charPad: string = padCharMatch || padChar;
 
-		let formattedValue: string = tagValue; // tagValue is guaranteed to be a string
+			let formattedValue: string = tagValue; // tagValue is guaranteed to be a string
 
-		if (!noPad) {
-			formattedValue = applyPadRight ? formattedValue.padEnd(applyPad, charPad) : formattedValue.padStart(applyPad, charPad);
-		}
+			if (!noPad) {
+				formattedValue = applyPadRight ? formattedValue.padEnd(applyPad, charPad) : formattedValue.padStart(applyPad, charPad);
+			}
 
-		text = text.replace(regexp, isLiteral || padLiteral ? Literal(formattedValue) : formattedValue);
+			text = text.replace(regexp, isLiteral || padLiteral ? Literal(formattedValue) : formattedValue);
 		}
 	}
 	return text;
+}
+
+export function UVIndexToText(uvIndex: number): string {
+	if (uvIndex < 3) {
+		return _("Low");
+	}
+	else if (uvIndex < 6) {
+		return _("Moderate");
+	}
+	else if (uvIndex < 8) {
+		return _("High");
+	}
+	else if (uvIndex < 11) {
+		return _("Very High");
+	}
+	else {
+		return _("Extreme");
+	}
 }
 
 export function CapitalizeFirstLetter(description: string): string {
@@ -271,8 +292,8 @@ export function GetDayName(date: DateTime, options: GetDayNameOptions = {}): str
 
 	// today or tomorrow, no need to include date
 	if (useTodayTomorrow) {
-	if (date.hasSame(now, "day") || date.hasSame(tomorrow, "day"))
-		delete params.weekday;
+		if (date.hasSame(now, "day") || date.hasSame(tomorrow, "day"))
+			delete params.weekday;
 	}
 
 	let dateString = date.toLocaleString(params);
@@ -378,6 +399,28 @@ export function ExtraFieldToUserUnits(extra_field: APIUniqueField, config: Confi
 			return TempToUserConfig(extra_field.value, config, withUnit);
 		default:
 			return _(extra_field.value);
+	}
+}
+
+/**
+ * If returns undefined, unit text doesn't need to be shown (e.g. Beaufort).
+ *
+ * Returns the most common text representation of the wind speed unit.
+ * @param unit
+ * @returns
+ */
+export function WindSpeedUnitToText(unit: Exclude<WeatherWindSpeedUnits, "automatic">): string | undefined {
+	switch (unit) {
+		case "Beaufort":
+			return undefined;
+		case "mph":
+			return _("mph");
+		case "kph":
+			return _("km/h");
+		case "Knots":
+			return _("Knots");
+		case "m/s":
+			return _("m/s");
 	}
 }
 
@@ -649,9 +692,9 @@ export function ValueChange(temp1: number, temp2: number, large_percent: number 
 	} else {
 		index = 4;
 	}
-  
+
 	return `${arrows[index]}${absDiff}`;
-  }
+}
 // -----------------------------------------------------------------
 // Testers
 
@@ -763,7 +806,7 @@ export function ConstructJsLocale(locales: string[]): string | null {
 		try {
 			new Date().toLocaleString(result);
 		}
-		catch(e) {
+		catch (e) {
 			Logger.Info(`Invalid locale: ${result}, not supported by JS, ignoring.`);
 			Logger.Debug(e?.toString() ?? "");
 			continue;
@@ -849,7 +892,7 @@ export const isFinalized = function (obj: unknown): boolean {
 interface CompareVersionOptions {
 	/**
 	 * Changes the result if one version string has less parts than the other. In
- 	 * this case the shorter string will be padded with "zero" parts instead of being considered smaller.
+	   * this case the shorter string will be padded with "zero" parts instead of being considered smaller.
 	 */
 	zeroExtend: boolean;
 }
@@ -953,3 +996,21 @@ export function setInterval(func: Function, ms: number): number {
 
 	return id;
 };
+
+/**
+ * Can have false negatives if the function cannot be initialised
+ * @param f
+ * @returns
+ */
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
+export function isConstructor(f: any): boolean {
+	try {
+		// eslint-disable-next-line @typescript-eslint/no-unsafe-call
+		new f();
+	}
+	catch {
+		// verify err is the expected error and then
+		return false;
+	}
+	return true;
+}

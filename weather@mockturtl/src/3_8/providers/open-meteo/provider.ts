@@ -1,21 +1,22 @@
+import { Services } from "../../config";
 import { HttpLib } from "../../lib/httpLib";
-import type { LocationData } from "../../types";
+import { ProviderErrorCode, type LocationData, type WeatherProvider } from "../../types";
 import { _ } from "../../utils";
 import type { WeatherData } from "../../weather-data";
-import { BaseProvider } from "../BaseProvider";
 import type { OpenMeteoWeatherResponse } from "./payload/response";
 import { OpenMeteoResponseToData } from "./payload/response";
 
-export class OpenMeteo extends BaseProvider {
+export class OpenMeteo implements WeatherProvider<Services.OpenMeteo> {
 
 	public readonly prettyName = _("Open-Meteo");
-	public readonly name = "OpenMeteo";
+	public readonly name = Services.OpenMeteo;
 	public readonly maxForecastSupport = 16;
 	public readonly website = "https://open-meteo.com/";
 	public readonly maxHourlyForecastSupport = 24;
 	public readonly needsApiKey = false;
 	public readonly supportHourlyPrecipChance = true;
 	public readonly supportHourlyPrecipVolume = true;
+	public readonly locationType = "coordinates";
 
 	public get remainingCalls(): number | null {
 		return null;
@@ -33,7 +34,7 @@ export class OpenMeteo extends BaseProvider {
 				longitude: loc.lon,
 				current: "temperature_2m,dewpoint_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,rain,showers,snowfall,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m",
 				hourly: "temperature_2m,precipitation_probability,precipitation,rain,showers,snowfall,snow_depth,weather_code,wind_speed_10m,wind_direction_10m,is_day",
-				daily: "weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,sunrise,sunset",
+				daily: "weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,sunrise,sunset,uv_index_max",
 				timezone: "auto",
 				forecast_days: "16",
 				forecast_hours: "24"
@@ -44,5 +45,9 @@ export class OpenMeteo extends BaseProvider {
 			return null;
 
 		return OpenMeteoResponseToData(result);
+	}
+
+	public ValidConfiguration(): ProviderErrorCode {
+		return ProviderErrorCode.OK;
 	}
 }

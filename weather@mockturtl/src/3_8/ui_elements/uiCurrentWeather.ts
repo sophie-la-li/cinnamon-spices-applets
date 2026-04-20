@@ -12,6 +12,7 @@ import { WindBox } from "./windBox";
 
 const { BoxLayout, IconType, Icon, Align } = imports.gi.St;
 const { ActorAlign } = imports.gi.Clutter;
+const { Tooltip } = imports.ui.tooltips;
 
 // stylesheet.css
 const STYLE_SUMMARYBOX = 'weather-current-summarybox'
@@ -22,6 +23,7 @@ const STYLE_ICONBOX = 'weather-current-iconbox'
 const STYLE_DATABOX_CAPTIONS = 'weather-current-databox-captions'
 const STYLE_DATABOX_VALUES = 'weather-current-databox-values'
 const STYLE_LOCATION_SELECTOR = 'location-selector';
+const STYLE_LOCATION = 'weather-current-location';
 
 export class CurrentWeather {
 	public readonly actor: imports.gi.St.BoxLayout;
@@ -51,6 +53,8 @@ export class CurrentWeather {
 
 	private immediatePrecipitationBox!: imports.gi.St.BoxLayout;
 	private immediatePrecipitationLabel!: imports.gi.St.Label;
+	private uvIndexIcon!: imports.gi.St.Icon;
+	private uvIndexTooltip!: imports.ui.tooltips.Tooltip<imports.gi.St.Icon>;
 
 	private app: WeatherApplet;
 
@@ -71,6 +75,7 @@ export class CurrentWeather {
 		this.app.config.ImmediatePrecipChanged.Subscribe(this.app.AfterRefresh((config, precip, data) => this.SetImmediatePrecipitation(data.immediatePrecipitation, config)));
 		this.app.config.LocationLabelOverrideChanged.Subscribe(this.app.AfterRefresh(this.OnLocationOverrideChanged));
 		this.app.config.PressureUnitChanged.Subscribe(this.app.AfterRefresh((config, pressure, data) => this.SetPressure(data.pressure)));
+		this.app.config.UV_IndexChanged.Subscribe(this.app.AfterRefresh((config, uvIndex, data) => this.SetUVIndex(data.uvIndex, config._uvIndex)));
 	}
 
 	private OnLocationOverrideChanged = (config: Config, label: string, data: WeatherData) => {
@@ -96,6 +101,7 @@ export class CurrentWeather {
 			this.SetDewPointField(weather.dewPoint);
 			this.SetAPIUniqueField(weather.extra_field);
 			this.sunTimesUI.Display(weather.sunrise, weather.sunset, weather.location.timeZone);
+			this.SetUVIndex(weather.uvIndex, config._uvIndex);
 
 			this.SetImmediatePrecipitation(weather.immediatePrecipitation, config);
 			return true;
@@ -141,11 +147,30 @@ export class CurrentWeather {
 		middleColumn.add(this.weatherSummary, { expand: true, x_align: Align.MIDDLE, y_align: Align.MIDDLE, x_fill: false, y_fill: false })
 
 		this.immediatePrecipitationLabel = Label({ style_class: "weather-immediate-precipitation" });
-		this.immediatePrecipitationBox = new BoxLayout({x_align: ActorAlign.CENTER});
+		this.immediatePrecipitationBox = new BoxLayout({ x_align: ActorAlign.CENTER });
 		this.immediatePrecipitationBox.add_actor(this.immediatePrecipitationLabel)
 		this.immediatePrecipitationBox.hide();
 		middleColumn.add_actor(this.immediatePrecipitationBox);
-		middleColumn.add_actor(this.sunTimesUI.Rebuild(config, textColorStyle));
+		const sunBox = new BoxLayout({
+			x_align: ActorAlign.CENTER,
+			vertical: false,
+			x_expand: true,
+		});
+		sunBox.add_actor(this.sunTimesUI.Rebuild(config, textColorStyle));
+
+		const uvIndexBox = new BoxLayout();
+		this.uvIndexIcon = new Icon({
+			icon_name: "uv-index-symbolic",
+			icon_type: IconType.SYMBOLIC,
+			icon_size: 20,
+			style_class: "weather-current-uvindex",
+			reactive: true,
+		});
+		this.uvIndexIcon.hide();
+		this.uvIndexTooltip = new Tooltip(this.uvIndexIcon, "");
+		uvIndexBox.add(this.uvIndexIcon);
+		sunBox.add_actor(uvIndexBox)
+		middleColumn.add_actor(sunBox);
 
 		return middleColumn;
 	}
@@ -214,11 +239,17 @@ export class CurrentWeather {
 	}
 
 	private BuildLocationSection() {
-		this.locationButton = new WeatherButton({ reactive: true, label: _('Refresh'), x_expand: true, x_align: Align.MIDDLE });
+		this.locationButton = new WeatherButton({
+			reactive: true,
+			label: _('Refresh'),
+			x_expand: true,
+			x_align: Align.MIDDLE,
+			style_class: STYLE_LOCATION
+		});
 		this.location = this.locationButton.actor;
 		this.location.connect(SIGNAL_CLICKED, () => {
 			if (this.app.encounteredError)
-				void this.app.Refresh({rebuild: true});
+				void this.app.Refresh({ rebuild: true });
 			else if (this.locationButton.url == null)
 				return;
 			else
@@ -378,16 +409,46 @@ export class CurrentWeather {
 			this.locationButton.url = url;
 	}
 
+	private SetUVIndex(uvIndex: number | null, show: boolean): void {
+		if (uvIndex == null || !show) {
+			this.uvIndexIcon.hide();
+			return;
+		}
+
+		this.uvIndexIcon.show();
+		if (uvIndex < 3) {
+			this.uvIndexIcon.hide();
+			this.uvIndexIcon.style = "color: #00FF00";
+			this.uvIndexTooltip.set_text(_("Low Risk of Harm from sun exposure, UV Index: {uvIndex}", { uvIndex: uvIndex.toString() }));
+		}
+		else if (uvIndex < 6) {
+			this.uvIndexIcon.style = "color: #FFFF00";
+			this.uvIndexTooltip.set_text(_("Moderate Risk of Harm from sun exposure, UV Index: {uvIndex}", { uvIndex: uvIndex.toString() }));
+		}
+		else if (uvIndex < 8) {
+			this.uvIndexIcon.style = "color: #FF8000";
+			this.uvIndexTooltip.set_text(_("High Risk of Harm from sun exposure, UV Index: {uvIndex}", { uvIndex: uvIndex.toString() }));
+		}
+		else if (uvIndex < 11) {
+			this.uvIndexIcon.style = "color: #FF0000";
+			this.uvIndexTooltip.set_text(_("Very High of Harm from sun exposure, Risk UV Index: {uvIndex}", { uvIndex: uvIndex.toString() }));
+		}
+		else {
+			this.uvIndexIcon.style = "color: #FF00FF";
+			this.uvIndexTooltip.set_text(_("Extreme Risk of Harm from sun exposure, UV Index: {uvIndex}", { uvIndex: uvIndex.toString() }));
+		}
+	}
+
 	// Callbacks
 
 	private NextLocationClicked = () => {
 		const loc = this.app.config.SwitchToNextLocation();
-		void this.app.Refresh({location: loc ?? undefined});
+		void this.app.Refresh({ location: loc ?? undefined });
 	}
 
 	private PreviousLocationClicked = () => {
 		const loc = this.app.config.SwitchToPreviousLocation();
-		void this.app.Refresh({location: loc ?? undefined});
+		void this.app.Refresh({ location: loc ?? undefined });
 	}
 
 	private onLocationStorageChanged(sender: LocationStore, itemCount: number): void {

@@ -1,5 +1,5 @@
-#!/bin/bash
-TITLE="$1"
+#!/usr/bin/env bash
+TITLE=$(echo -n "$1" | tr -d '"')
 RES="$2"
 
 [[ -f ${XDG_RUNTIME_DIR}/mpv_radio_PID ]] || exit 0 # Radio3.0 is not running.

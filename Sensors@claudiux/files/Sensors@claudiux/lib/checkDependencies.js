@@ -3,7 +3,8 @@ const GLib = imports.gi.GLib; // ++ Needed for starting programs and translation
 const Gio = imports.gi.Gio; // Needed for file infos
 const Extension = imports.ui.extension; // Needed to reload applets
 const MessageTray = imports.ui.messageTray; // ++ Needed for the criticalNotify() function in this script
-const Util = imports.misc.util; // Needed for spawnCommandLine()
+//~ const Util = imports.misc.util; // Needed for spawnCommandLine()
+const Util = require("./lib/util"); // Needed for spawnCommandLine()
 const Main = imports.ui.main; // ++ Needed for notify()
 const Gettext = imports.gettext;
 
@@ -65,6 +66,10 @@ const DEPENDENCIES = {
     ["sox", "/usr/bin/sox",  "sox"],
     ["", "/usr/share/doc/libsox-fmt-mp3/copyright", "libsox-fmt-mp3"]
   ],
+  "devuan": [
+    ["sox", "/usr/bin/sox",  "sox"],
+    ["", "/usr/share/doc/libsox-fmt-mp3/copyright", "libsox-fmt-mp3"]
+  ],
   "fedora": [
     ["sox", "/usr/bin/sox",  "sox"]
   ],
@@ -96,6 +101,13 @@ var DEPENDENCIES = {
     ["smartctl", "/usr/sbin/smartctl", "smartmontools"],
     ["", "/usr/share/doc/fonts-noto-core/copyright", "fonts-noto-core"]
   ],
+  "devuan": [
+    ["sensors", "/usr/bin/sensors",  "lm-sensors"],
+    ["xsensors", "/usr/bin/xsensors", "xsensors"],
+    //~ ["hddtemp", "/usr/sbin/hddtemp", "hddtemp"],
+    ["smartctl", "/usr/sbin/smartctl", "smartmontools"],
+    ["", "/usr/share/doc/fonts-noto-core/copyright", "fonts-noto-core"]
+  ],
   "fedora": [
     ["sensors", "/usr/bin/sensors",  "lm_sensors"],
     ["xsensors", "/usr/bin/xsensors", "xsensors"],
@@ -106,7 +118,8 @@ var DEPENDENCIES = {
   "openSUSE": [
     ["sensors", "/usr/bin/sensors",  "sensors"],
     ["smartctl", "/usr/sbin/smartctl", "smartmontools"]
-  ]
+  ],
+  "gentoo": []
 }
 
 
@@ -114,6 +127,7 @@ var DEPENDENCIES = {
 if (NEEDS_FONTS_SYMBOLA) {
   DEPENDENCIES["default"].push(["", "/usr/share/fonts/truetype/ancient-scripts/Symbola_hint.ttf", "fonts-symbola"]);
   DEPENDENCIES["debian"].push(["", "/usr/share/fonts/truetype/ancient-scripts/Symbola_hint.ttf", "fonts-symbola"]);
+  DEPENDENCIES["devuan"].push(["", "/usr/share/fonts/truetype/ancient-scripts/Symbola_hint.ttf", "fonts-symbola"]);
   DEPENDENCIES["fedora"].push(["", "/usr/share/fonts/gdouros-symbola/Symbola.ttf", "gdouros-symbola-fonts"]);
   DEPENDENCIES["openSUSE"].push(["", "/usr/share/fonts/truetype/Symbola.ttf", "gdouros-symbola-fonts"]);
 }
@@ -130,17 +144,20 @@ const UPDATE = {
   "default": "sudo apt-get update",
   "arch": "sudo pacman -Syu",
   "debian": "apt-get update",
+  "devuan": "apt-get update",
   "fedora": "sudo dnf update",
-  "openSUSE": ""//,
-  //"gentoo": "emerge --sync"
+  "openSUSE": "",
+  "gentoo": ""
 }
 
 const INSTALL = {
   "default": "sudo apt-get install",
   "arch": "sudo pacman -S",
   "debian": "apt-get install",
+  "devuan": "apt-get install",
   "fedora": "sudo dnf install",
-  "openSUSE": "sudo zypper --non-interactive install"
+  "openSUSE": "sudo zypper --non-interactive install",
+  "gentoo": ""
 }
 
 //const HOME_DIR = GLib.get_home_dir();
@@ -234,7 +251,7 @@ function isArchLinux() {
 } // End of isArchLinux
 
 function isDebian() {
-  return DISTRO() === 'debian'
+  return DISTRO() === 'debian' || DISTRO() === 'devuan'
 } // End of isDebian
 
 function isOpenSUSE() {
@@ -259,6 +276,7 @@ function get_distro() {
   let distro = DISTRO();
   switch (distro) {
     case "debian":
+    case "devuan":
     case "arch":
     case "fedora":
       return distro;
